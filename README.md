@@ -244,11 +244,29 @@
     	AMOUNT			money,
     	IS_FRAUD		int
     )
-    
-
 
 - **Create Reference Tables/Views in DWH**
-
+  - As there have so many changes in tables in DWH so, we need to have reference table/views, from where we will get the data.
+  - We will use reference table because we will use more options in SSIS. By the way, below reference views also can be used for data fetching from CC_Transactions_Stage to CC_Transactions_DW.
+  - reference view because 'address' table and 'city' table merged
+    ```sql
+    create view vw_Dim_Address
+    as
+    select add_id, street, zip, lat, long, city, state, city_pop
+    from CC_Transactions_Stage.dbo.address_stage a full join CC_Transactions_Stage.dbo.city_stage c
+    on a.city_id = c.city_id
+    ```
+  - reference view because one column deleted from 'customer' table
+    ```sql
+    create view vw_Dim_Customer
+    as
+    select cust_id, first, last, cc_num, gender, job, dob from CC_Transactions_Stage.dbo.customer_stage
+    ```
+  - 'merchant' table has no changes
+  - 
+    
+        
+    
 - **Create SSIS Package for DWH Server**
 
 - **Data Loading to 'bank_dw' Database from 'bank_stage' Database**
