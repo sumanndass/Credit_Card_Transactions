@@ -1,4 +1,4 @@
-# Credit_Card_Transactions_MSBI
+![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/d5c34a2b-ec5a-4f73-b8fa-9c59fc08223b)# Credit_Card_Transactions_MSBI
 - This dataset is a simulated credit card transaction dataset that includes both legitimate and fraudulent transactions.
 - Using SSIS we will Extract, Transform and Load the data from OLTP server to Stage server and then OLAP/DWH serevr.
 - Using SSAS we will store pre-aggregated values (Totals) for multi-dimensional analysis.
@@ -176,7 +176,76 @@
 
 - **Create Dimension and Fact table in DWH**
   - As in OLAP/DWH we need to denormalized dimension tables and extract facts
-  - 
+  - we merged 'address' and 'city' table based on common column 'city_id' and create 'Dim_Address' table
+  - delete 'add_id' column from 'customer' table and create 'Dim_Customer'
+  - leave 'merchant' table as it is and create 'Dim_Merchant'
+  - create new 'Dim_Date'
+  - create new 'Dim_Time'
+  - create new 'Fact_Transaction' table
+    ```sql
+    create table Dim_Address
+    (
+    	ADDRESS_ID		int				primary key,
+    	STREET			varchar(40),
+    	ZIP				int,
+    	LATITUDE		float,
+    	LONGITUDE		float,
+    	CITY_NAME		varchar(30),
+    	STATE			varchar(5),
+    	CITY_POPULATION	int
+    )
+    ```
+    ```sql
+    create table Dim_Customer
+    (
+    	CUSTOMER_ID			int		primary key,
+    	FIRST_NAME			varchar(25),
+    	LAST_NAME			varchar(25),
+    	CREDIT_CARD_NUMBER	varchar(25),
+    	GENDER				char(1),
+    	JOB					varchar(100),
+    	DATE_OF_BIRTH		datetime
+    )
+    ```
+    ```sql
+    create table Dim_Merchant
+    (
+    	MERCHANT_ID		int,
+    	MERCHANT_NAME	varchar(50),
+    	CATEGORY		varchar(20),
+    	MERCH_LATITUDE	float,
+    	MERCH_LONGITUDE	float
+    )
+    ```
+    ```sql
+    create table Dim_Date
+    (
+      DATETIME_ID	int		primary key,
+    	FULL_DATE	datetime,
+    	DAY			int,
+    	DAY_NAME	varchar(10),
+    	WEEK		int,
+    	MONTH		int,
+    	MONTH_NAME	varchar(10),
+    	QUARTER		int,
+    	SEMESTER	int,
+    	YEAR		int,
+    	HOUR		int,
+    	MINUTE		int
+    )
+    ```
+    ```sql
+    create table Fact_Transaction
+    (
+    	CUSTOMER_ID		int,
+    	ADDRESS_ID		int,
+    	MERCHANT_ID		int,
+    	DATETIME_ID		int,
+    	AMOUNT			money,
+    	IS_FRAUD		int
+    )
+    
+
 
 - **Create Reference Tables/Views in DWH**
 
