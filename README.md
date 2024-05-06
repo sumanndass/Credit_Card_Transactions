@@ -150,6 +150,12 @@
     - do the same for '2_address', '3_customer', '4_merchant', '5_transactions' packages
 
 - **SSIS Failure Logging (To know about the failure happened in loading)**
+  - double click on desired package -> go to 'Extension' -> 'SSIS' -> 'Logging'
+  - choose all 'Containers:' from left side -> 'Add' 'SSIS log provider for SQL Server', tick the same and choose the destination server 'destDB.pizzeria_stage' in 'Configuration' -> go to 'Details' and tick 'OnError' and 'OnTaskFailed'
+  - Find the error logs in system tables in the selected database by using command `sql select * from sysssislog`
+  - again, choose all 'Containers:' -> 'Add' 'SSIS log provider for Windows Event Log', tick the same -> go to 'Details' and tick 'OnError' and 'OnTaskFailed'
+  - Find the error logs in 'Windows Event Viewer' -> 'Windows Logs' -> 'Application'
+  - Set this task for other packages also
 
 
 ### SSIS for Data Warehouse Database (SQL Server Integration Service)
