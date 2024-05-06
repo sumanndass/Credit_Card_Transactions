@@ -18,9 +18,16 @@
 ### Overview
 - The dataset chosen for this purpose includes synthetically generated credit card transactions, containing transaction, customer, and merchant details.
 - Assume data are storing in various tables in 'Credit_Card_Transactions' database. Tables are 'city', 'address', 'customer', 'merchant', 'transactions'.
+  - One customer can have only one address, while one address can refer to multiple customers who may live in the same address.
+  - One address can only have one city, while a city can have multiple addresses.
+  - One customer can initiate multiple transactions, while a single transaction must have only one customer.
+  - A transaction requires a single merchant, while a merchant can be involved in multiple transactions.
 - But we will fetch 'address' data from a excel document because we want to fetch data from different location.
 - We need to load the data from 'Credit_Card_Transactions' database and from excel document file to 'CC_Transactions_Stage' database using ETL operation.
 - Then we will load the data to 'CC_Transactions_DW' data warehouse database.
+  - Deals with historical data
+  - Data is organized in multi-dimensional schemas such as stars, snowflake, galaxy/fact constellation, etc
+  - The primary use cases for this include business intelligence reporting and business planning
 
 
 ### Objective
@@ -34,14 +41,13 @@
 
 
 ### SSIS for Stage Database (SQL Server Integration Service)
-- **create a stage database named 'CC_Transactions_Stage' (where ETL will happen)**
+- **create and use a stage database named 'CC_Transactions_Stage' (where ETL will happen)**
   ```sql
   create database pizzeria_stage
-  ```
-
-- **use the 'CC_Transactions_Stage' database**
-  ```sql
+  go
+  
   use pizzeria_stage
+  go
   ```
 
 - **Create SSIS Project**
@@ -160,8 +166,17 @@
 
 ### SSIS for Data Warehouse Database (SQL Server Integration Service)
 - **Create Data Warehouse Database**
+  ```sql
+  create database CC_Transactions_DW
+  go
+
+  use CC_Transactions_DW
+  go
+  ```
 
 - **Create Dimension and Fact table in DWH**
+  - As in OLAP/DWH we need to denormalized dimension tables and extract facts
+  - 
 
 - **Create Reference Tables/Views in DWH**
 
