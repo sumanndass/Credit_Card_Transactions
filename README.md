@@ -1,4 +1,4 @@
-![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/d5c34a2b-ec5a-4f73-b8fa-9c59fc08223b)# Credit_Card_Transactions_MSBI
+# Credit_Card_Transactions_MSBI
 - This dataset is a simulated credit card transaction dataset that includes both legitimate and fraudulent transactions.
 - Using SSIS we will Extract, Transform and Load the data from OLTP server to Stage server and then OLAP/DWH serevr.
 - Using SSAS we will store pre-aggregated values (Totals) for multi-dimensional analysis.
@@ -43,10 +43,10 @@
 ### SSIS for Stage Database (SQL Server Integration Service)
 - **create and use a stage database named 'CC_Transactions_Stage' (where ETL will happen)**
   ```sql
-  create database pizzeria_stage
+  create database CC_Transactions_Stage
   go
   
-  use pizzeria_stage
+  use CC_Transactions_Stage
   go
   ```
 
@@ -81,15 +81,15 @@
     - select 'New' in 'Name of the table or the view'
     - change table name to 'stage_city' and change data type if needed - Ok
     - now click on 'Mappings' to check source and destination column and data type are corrected or not -> Ok
-  - change names of connections in 'Connection Managers' for better understanding like for source connection named 'source.Credit_Card_Transaction', for destination connection named 'dest.CC_Transactions_Stage' -> right click on it and 'Convert to Package Connection' for rest of the project
+  - change names of connections in 'Connection Managers' for better understanding like for source connection named 'sourceDB.Credit_Card_Transaction', for destination connection named 'destDB.CC_Transactions_Stage' -> right click on it and 'Convert to Package Connection' for rest of the project
   - stage table always needs fresh data
   - so, drag 'Execute SQL Task' in 'Control Flow'
     - double click on it
-    - in 'General' select 'OLE DB' in 'ConnectionType' and 'dest.CC_Transactions_Stage' in 'Connection'
+    - in 'General' select 'OLE DB' in 'ConnectionType' and 'destDB.CC_Transactions_Stage' in 'Connection'
     - add SQL truncate command (`truncate table stage_city`) to delete all old data from stage whenever new data comes -> Ok
     - connect 'green pipe' from 'Execute SQL task' to 'Data Flow Task'
     - 'Start' the project
-    - do the same for '2_address', '3_customer', '4_merchant', '5_transactions' packages
+    - do the same for '3_customer', '4_merchant', '5_transactions' packages
 
 - **Data Loading to 'CC_Transactions_Stage' Database from 'Excel' Document**
   - double click on '2_address' SSIS Packages
@@ -157,7 +157,7 @@
 
 - **SSIS Failure Logging (To know about the failure happened in loading)**
   - double click on desired package -> go to 'Extension' -> 'SSIS' -> 'Logging'
-  - choose all 'Containers:' from left side -> 'Add' 'SSIS log provider for SQL Server', tick the same and choose the destination server 'destDB.pizzeria_stage' in 'Configuration' -> go to 'Details' and tick 'OnError' and 'OnTaskFailed'
+  - choose all 'Containers:' from left side -> 'Add' 'SSIS log provider for SQL Server', tick the same and choose the destination server 'destDB.CC_Transactions_Stage' in 'Configuration' -> go to 'Details' and tick 'OnError' and 'OnTaskFailed'
   - Find the error logs in system tables in the selected database by using command `sql select * from sysssislog`
   - again, choose all 'Containers:' -> 'Add' 'SSIS log provider for Windows Event Log', tick the same -> go to 'Details' and tick 'OnError' and 'OnTaskFailed'
   - Find the error logs in 'Windows Event Viewer' -> 'Windows Logs' -> 'Application'
@@ -177,42 +177,41 @@
 - **Create Dimension and Fact table in DWH**
   - As in OLAP/DWH we need to denormalized dimension tables and extract facts
   - we merged 'address' and 'city' table based on common column 'city_id' and create 'Dim_Address' table
-  - delete 'add_id' column from 'customer' table and create 'Dim_Customer'
-  - leave 'merchant' table as it is and create 'Dim_Merchant'
+  - delete 'add_id' column from 'customer' table and create 'Dim_Customer' table
+  - leave 'merchant' table as it is and create 'Dim_Merchant' table
   - create new 'Dim_Date'
-  - create new 'Dim_Time'
   - create new 'Fact_Transaction' table
     ```sql
     create table Dim_Address
     (
-    	ADDRESS_ID		int				primary key,
+    	ADDRESS_ID		int		primary key,
     	STREET			varchar(40),
-    	ZIP				int,
+    	ZIP			int,
     	LATITUDE		float,
     	LONGITUDE		float,
     	CITY_NAME		varchar(30),
     	STATE			varchar(5),
-    	CITY_POPULATION	int
+    	CITY_POPULATION	        int
     )
     ```
     ```sql
     create table Dim_Customer
     (
-    	CUSTOMER_ID			int		primary key,
-    	FIRST_NAME			varchar(25),
-    	LAST_NAME			varchar(25),
+    	CUSTOMER_ID	        int		primary key,
+    	FIRST_NAME	        varchar(25),
+    	LAST_NAME	        varchar(25),
     	CREDIT_CARD_NUMBER	varchar(25),
-    	GENDER				char(1),
-    	JOB					varchar(100),
+    	GENDER			char(1),
+    	JOB			varchar(100),
     	DATE_OF_BIRTH		datetime
     )
     ```
     ```sql
     create table Dim_Merchant
     (
-    	MERCHANT_ID		int,
+    	MERCHANT_ID	int,
     	MERCHANT_NAME	varchar(50),
-    	CATEGORY		varchar(20),
+    	CATEGORY	varchar(20),
     	MERCH_LATITUDE	float,
     	MERCH_LONGITUDE	float
     )
@@ -220,9 +219,9 @@
     ```sql
     create table Dim_Date
     (
-      DATETIME_ID	int		primary key,
+            DATETIME_ID	int		primary key,
     	FULL_DATE	datetime,
-    	DAY			int,
+    	DAY		int,
     	DAY_NAME	varchar(10),
     	WEEK		int,
     	MONTH		int,
@@ -263,7 +262,8 @@
     select cust_id, first, last, cc_num, gender, job, dob from CC_Transactions_Stage.dbo.customer_stage
     ```
   - 'merchant' table has no changes
-  - 
+  - populate new date dimension table 'Dim_Date'
+    
     
         
     
