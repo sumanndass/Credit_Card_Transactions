@@ -220,7 +220,7 @@
     create table Dim_Date
     (
             DATETIME_ID	int		primary key,
-    	FULL_DATE	datetime,
+    	FULL_DATE	date,
     	DAY		int,
     	DAY_NAME	varchar(10),
     	WEEK		int,
@@ -263,8 +263,45 @@
     ```
   - 'merchant' table has no changes
   - populate new date dimension table 'Dim_Date'
+    ```sql
+    declare @start datetime
+    declare @end datetime = getdate()
+
+    select @start = cast(min(trans_date_trans_time) as date) from CC_Transactions_Stage.dbo.transactions_stage
+
+    while @start <= @end
+    begin
+    	insert into Dim_Date values
+    	(
+    		cast(format(@start, 'ddMMyyyy') as int),
+    		cast(@start as date),
+    		day(@start),
+    		datename(dw, @start),
+    		datepart(wk, @start),
+    		month(@start),
+    		datename(mm, @start),
+    		case
+    			when month(@start) in (1,2,3) then 1
+    			when month(@start) in (4,5,6) then 2
+    			when month(@start) in (7,8,9) then 3
+    			when month(@start) in (10,11,12) then 4
+    		end,
+    		case
+    			when month(@start) in (1,2,3,4,5,6) then 1
+    			else 2
+    		end,
+    		year(@start)
+    	)
+
+    	set @start = dateadd(dd, 1, @start)
+    end
+    ```
+  - we have 4 dimension tables and 1 fact tables. So, we need to create 4 packages, named 'DWH_Load_Dim_Address', 'DWH_Load_Dim_Customer', 'DWH_Load_Dim_Merchant', 'DWH_Load_Fact_Transaction'. 'Dim_Date' is already loaded.
+  - 
     
-    
+
+
+        
         
     
 - **Create SSIS Package for DWH Server**
