@@ -191,7 +191,8 @@
     	LONGITUDE		float,
     	CITY_NAME		varchar(30),
     	STATE			varchar(5),
-    	CITY_POPULATION	        int
+    	CITY_POPULATION	        int,
+            CENSUS_YEAR             char(4)
     )
     ```
     ```sql
@@ -228,9 +229,7 @@
     	MONTH_NAME	varchar(10),
     	QUARTER		int,
     	SEMESTER	int,
-    	YEAR		int,
-    	HOUR		int,
-    	MINUTE		int
+    	YEAR		int
     )
     ```
     ```sql
@@ -299,9 +298,51 @@
   - we have 4 dimension tables and 1 fact tables. So, we need to create 4 packages, named 'DWH_Load_Dim_Address', 'DWH_Load_Dim_Customer', 'DWH_Load_Dim_Merchant', 'DWH_Load_Fact_Transaction'. 'Dim_Date' is already loaded.
 
 - **Create SSIS Package for DWH Server**
-- open SSIS project -> in Solution Explorer -> create SSIS Packages -> rename the packages
+  - open SSIS project -> in Solution Explorer -> create SSIS Packages -> rename the packages
 
-- **Data Loading to 'bank_dw' Database from 'bank_stage' Database**
-- 
+- **Data Loading to 'CC_Transactions_DW' Database from 'CC_Transactions_Stage' Database**
+  - double click on 'DWH_Load_Dim_Address' SSIS Packages
+  - drag 'Data Flow Task' in 'Control Flow' section
+  - double click on 'Data Flow Task'
+  - drag 'OLE DB Source'
+    - double click on it
+    - in 'connection Manager' select 'New' in 'OLE DB Connection manager' -> againg select 'New' -> Ok
+    - select 'Provider' as 'Native OLE DB\Microsoft OLE DB Driver for SQL Server'
+    - put 'Server or file name' as '.' -> select database name 'CC_Transactions_Stage' in 'Initial catalog' -> Ok -> Ok
+    - select 'Data access mode' as 'Table or view'
+    - choose '[dbo].[address_stage]' from 'Name of the table or the view' -> Ok
+  - drag 'Lookup'
+    - to join tables
+    - Look up on 'city_stage' table based on 'city_id' and get 'city', 'state', 'city_pop' columns. Reference 'ETL_Mapping.xlsx'
+    - connect 'blue pipe' from 'OLE DB Source' to 'Lookup'
+    - double click on it
+    - choose 'Redirect rows to no match output' in 'Specify how to handle rows with no matching entries' in 'General'
+    - in 'Connection' choose 'CC_Transactions_Stage' in 'OLE DB Connection Manager' and choose 'city_stage' in 'Use a table or a view'
+    - in 'Columns' tab drag 'city_id' of 'Available Input Columns' on 'city_id' of 'Available Lookup Columns' and tick desired columns 'city', 'state' and 'city_pop'
+    - change 'Output Alias' as 'city_lkp', 'state_lkp' and 'city_pop_lkp' -> Ok
+  - drag 'Derived Column'
+    - to add new column
+    - connect 'blue pipe' from 'Lookup' to 'Derived Column'
+    - choose 'Lookup Match Output' in 'Output' -> Ok
+    - double click on it
+    - enter 'Derived Column Name' as 'country_code_derived', choose 'Derived Column' as 'add as new column'
+    - enter 'Expression' as '91' -> Ok
+  - drag 'OLE DB Destination'
+    - connect 'blue pipe' from 'Derived Column' to 'OLE DB Destination'
+    - double click on it
+    - in 'connection Manager' select 'New' in 'OLE DB Connection manager' -> again select 'New' -> Ok
+    - select 'Provider' as 'Native OLE DB\Microsoft OLE DB Driver for SQL Server'
+    - put 'Server or file name' as '.' -> select database name 'CC_Transactions_DW' in 'Initial catalog' -> Ok -> Ok
+    - select 'Data access mode' as 'Table or view - fast load'
+    - select '[dbo].[Dim_Address]' table in 'Name of the table or the view' which was created before 
+    - now click on 'Mappings' to check source and destination column and data type are corrected or not -> Ok
+  - change names in 'Connection Managers' for better understanding -> right click on it and 'Convert to Package Connection' for rest of the project
+  - do the same for 'DWH_Load_Dim_Customer', 'DWH_Load_Dim_Merchant', 'DWH_Load_Fact_Transaction' packages taking reference from 'ETL_Mapping.xlsx'
+  - now, do the Loggings for all the packages which was mentioned earlier.
+  - now, if any update available in stage database we will load the same in DWH dimension tables only not in the fact tables, but one issue will occur i.e., again old data will load in dimension tables with new ones. So, we will use Slowly Changing Dimension (SCD) to negate the old data from copying with.
+  - however, for incremental/delta loading we can use SCD, Lookup, Stored Procedure, Set Operator, Merge Command
+
+
+
 
 - 
