@@ -297,15 +297,11 @@
     end
     ```
   - we have 4 dimension tables and 1 fact tables. So, we need to create 4 packages, named 'DWH_Load_Dim_Address', 'DWH_Load_Dim_Customer', 'DWH_Load_Dim_Merchant', 'DWH_Load_Fact_Transaction'. 'Dim_Date' is already loaded.
-  - 
-    
 
-
-        
-        
-    
 - **Create SSIS Package for DWH Server**
+- open SSIS project -> in Solution Explorer -> create SSIS Packages -> rename the packages
 
 - **Data Loading to 'bank_dw' Database from 'bank_stage' Database**
+- 
 
 - 
