@@ -261,6 +261,21 @@
     select cust_id, first, last, cc_num, gender, job, dob from CC_Transactions_Stage.dbo.customer_stage
     ```
   - 'merchant' table has no changes
+  - reference view because need to add 'ADDRESS_ID' in 'Fact_Transaction' table of 'CC_Transactions_DW' server
+    ```sql
+    create view vw_TransactionID_to_AddID
+    as
+    select transaction_id, c.add_id
+    from CC_Transactions_Stage.dbo.transactions_stage t
+    join CC_Transactions_Stage.dbo.customer_stage c on t.cust_id = c.cust_id
+    join CC_Transactions_Stage.dbo.address_stage a on c.add_id = a.add_id
+    ```
+  - reference view because need to add 'DATETIME_ID' in 'Fact_Transaction' table of 'CC_Transactions_DW' server
+    ```sql
+    create view vw_trans_date_trans_time_to_DateTimeID
+    as
+    select trans_date_trans_time, format(trans_date_trans_time, 'yyyyMMdd') datetimeid from CC_Transactions_Stage.dbo.transactions_stage
+    ```
   - populate new date dimension table 'Dim_Date'
     ```sql
     declare @start datetime
@@ -272,7 +287,7 @@
     begin
     	insert into Dim_Date values
     	(
-    		cast(format(@start, 'ddMMyyyy') as int),
+    		cast(format(@start, 'yyyyMMdd') as int),
     		cast(@start as date),
     		day(@start),
     		datename(dw, @start),
@@ -338,9 +353,54 @@
     - now click on 'Mappings' to check source and destination column and data type are corrected or not -> Ok
   - change names in 'Connection Managers' for better understanding -> right click on it and 'Convert to Package Connection' for rest of the project
   - do the same for 'DWH_Load_Dim_Customer', 'DWH_Load_Dim_Merchant', 'DWH_Load_Fact_Transaction' packages taking reference from 'ETL_Mapping.xlsx'
-  - now, do the Loggings for all the packages which was mentioned earlier.
+  - now, do the manual nad automatic Loggings for all the packages which was mentioned earlier.
   - now, if any update available in stage database we will load the same in DWH dimension tables only not in the fact tables, but one issue will occur i.e., again old data will load in dimension tables with new ones. So, we will use Slowly Changing Dimension (SCD) to negate the old data from copying with.
-  - however, for incremental/delta loading we can use SCD, Lookup, Stored Procedure, Set Operator, Merge Command
+  - however, for incremental/delta loading we can use SCD, Lookup, Stored Procedure, Set Operators, Merge Command
+  - remember, only Dimension tables need to be implemented with incrementa loading and for Fact tables need to be implemented with full loading.
+    <br> &emsp;
+  - Incremental loading using '**Lookup**'
+    - we 'Lookup' on destination table and for unmatched data we will insert and for matched data we will update the same in destination table
+    - double click on 'DWH_Load_Dim_Address'
+    - drag 'Lookup' just before 'OLE DB Destination' to looking for new data or updated data
+      - connect 'blue pipe' from 'Derived Column' to 'Lookup1'
+      - double click on it
+      - choose 'Redirect rows to no match output' in 'Specify how to handle rows with no matching entries' in 'General'
+      - in 'Connection' choose 'CC_Transactions_DW' in 'OLE DB Connection Manager' and choose 'Dim_Address' in 'Use a table or a view'
+      - in 'Columns' tab drag 'add_id' of 'Available Input Columns' on 'ADDRESS_ID' of 'Available Lookup Columns' -> Ok
+    - now, for 'OLE DB Destination'
+      - connect 'blue pipe' from Lookup1' to 'OLE DB Destination'
+      - choose 'Lookup No Match Output' in 'Output' for inserting data -> Ok
+    - now, drag 'OLE DB Command'
+      - for updated data, to update data in destination table
+      - connect 'blue pipe' from Lookup1' to 'OLE DB Command'
+      - choose 'Lookup Match Output' in 'Output' for updating data -> Ok
+      - double click on 'OLE DB Command'
+      - in 'Connection Managers' tab, select 'destDB.CC_Transactions_DW' in 'Connection Managers'
+      - in 'Component Properties' tab, in 'SqlCommand' enter
+      ```sql
+      update Dim_Address
+      set STREET= ?, ZIP = ?, LATITUDE = ?, LONGITUDE = ?, CITY_NAME = ?, STATE = ?, CITY_POPULATION = ?, CENSUS_YEAR = ?
+      where ADDRESS_ID = ?
+      ```
+    - in 'Column Mappings' tab, map 'Input Column' and 'Destination Column' -> Ok
+  - But the problem with 'OLE DB Command' is that it does not verify whether there have any changes in the matched data or not, it just takes all the data and updating or over writing the same. So, to identify any change in source data we need to use another 'Lookup' before 'OLE DB Command' and identify the actual data where updation is required.
+    - drag 'Lookup' just before 'OLE DB Command'
+    - connect 'blue pipe' from 'Lookup 2' to 'OLE DB Command'
+    - choose 'Lookup No Match Output' in 'Output' for inserting data -> Ok
+    - double click on 'Lookup 2'
+    - choose 'Redirect rows to no match output' in 'Specify how to handle rows with no matching entries' in 'General'
+    - in 'Connection' choose 'bank_dw' in 'OLE DB Connection Manager' and choose 'dim_account' in 'Use a table or a view'
+    - in 'Columns' connect 'acc_id' to 'acc_id', 'cust_name' to 'cust_name', 'cust_add' to 'cust_add', 'cust_state' to 'cust_state', 'cust_zipcode' to 'cust_zipcode', 'prod_name_lkp' to 'prod_name', 'status' to 'status' -> Ok
+  - Now, we cannot load all the tables at once, we need to load tables where PKs are present then we can load table where FKs are present.
+    - now, create one more package named 'DWL_load_tables.dtsx'
+    - double click on it
+    - drag 'Execute Package Task' and double click on it
+    - in 'Package' choose the first package in 'PackageNameFromProjectReference' -> Ok
+    - again drag another 'Execute Package Task 1'
+    - connect 'green pipe' from ' Execute Package Task ' to ' Execute Package Task 1'
+    - double click on it and in 'Package' choose the second package in 'PackageNameFromProjectReference' -> Ok
+    - do the same thing till last package
+
 
 
 
