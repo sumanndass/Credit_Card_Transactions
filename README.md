@@ -384,21 +384,23 @@
       ```
     - in 'Column Mappings' tab, map 'Input Column' and 'Destination Column' -> Ok
   - But the problem with 'OLE DB Command' is that it does not verify whether there have any changes in the matched data or not, it just takes all the data and updating or over writing the same. So, to identify any change in source data we need to use another 'Lookup' before 'OLE DB Command' and identify the actual data where updation is required.
+    - in 'Dim_Address' table only the 'CITY_POPULATION' and 'CENSUS_YEAR' columns could be updated over time but the other columns like 'STREET', 'ZIP', 'LATITUDE', 'LONGITUDE', 'CITY_NAME', 'STATE' cannot updatd
     - drag 'Lookup' just before 'OLE DB Command'
-    - connect 'blue pipe' from 'Lookup 2' to 'OLE DB Command'
-    - choose 'Lookup No Match Output' in 'Output' for inserting data -> Ok
+    - connect previous 'Lookpup' to 'Lookup 2'
     - double click on 'Lookup 2'
     - choose 'Redirect rows to no match output' in 'Specify how to handle rows with no matching entries' in 'General'
-    - in 'Connection' choose 'bank_dw' in 'OLE DB Connection Manager' and choose 'dim_account' in 'Use a table or a view'
-    - in 'Columns' connect 'acc_id' to 'acc_id', 'cust_name' to 'cust_name', 'cust_add' to 'cust_add', 'cust_state' to 'cust_state', 'cust_zipcode' to 'cust_zipcode', 'prod_name_lkp' to 'prod_name', 'status' to 'status' -> Ok
+    - in 'Connection' choose 'CC_Transactions_DW' in 'OLE DB Connection Manager' and choose 'Dim_Address' in 'Use a table or a view'
+    - in 'Columns' connect ADDRESS_ID, CITY_POPULATION, CENSUS_YEAR only -> Ok
+    - connect 'blue pipe' from 'Lookup 2' to 'OLE DB Command'
+    - choose 'Lookup No Match Output' in 'Output' for inserting data -> Ok
   - Now, we cannot load all the tables at once, we need to load tables where PKs are present then we can load table where FKs are present.
-    - now, create one more package named 'DWL_load_tables.dtsx'
+    - now, create one more package named 'DWH_load_tables.dtsx'
     - double click on it
     - drag 'Execute Package Task' and double click on it
-    - in 'Package' choose the first package in 'PackageNameFromProjectReference' -> Ok
+    - in 'Package' tab choose the first package in 'PackageNameFromProjectReference' -> Ok
     - again drag another 'Execute Package Task 1'
     - connect 'green pipe' from ' Execute Package Task ' to ' Execute Package Task 1'
-    - double click on it and in 'Package' choose the second package in 'PackageNameFromProjectReference' -> Ok
+    - double click on it and in 'Package' tab choose the second package in 'PackageNameFromProjectReference' -> Ok
     - do the same thing till last package
 
 
