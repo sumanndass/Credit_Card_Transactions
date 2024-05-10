@@ -497,7 +497,7 @@
       	<br> Historical Attribute (Type 2) -> data that will update or change and we need to maintain the historic data in database like, Salary increasing every year etc. 
       - now select dimension column in 'Dimension Columns' and select 'Changing Attribute' in 'Change Type' -> Next -> Next -> Next -> Finish
       - and it will create everything for you
-        ![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/8c83032a-9a56-4a53-9599-73ba63b757d9)
+        <br> ![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/8c83032a-9a56-4a53-9599-73ba63b757d9)
         <br> **Remember**
         <br> if Historical Attribute (Type 2) is there then we cannot have Primary Key in database because Type 2 save duplicate data in Primary Key column
       - just remember performance wise 'Slowly Changing Dimension' is not so good because it uses 'OLE DB Command' for data loading and as we know 'OLE DB Command' perform row by row wise.
