@@ -427,11 +427,11 @@
       - double click on 'OLE DB Command'
       - in 'Connection Managers' tab, select 'destDB.CC_Transactions_DW' in 'Connection Managers'
       - in 'Component Properties' tab, in 'SqlCommand' enter
-      ```sql
-      update Dim_Address
-      set STREET= ?, ZIP = ?, LATITUDE = ?, LONGITUDE = ?, CITY_NAME = ?, STATE = ?, CITY_POPULATION = ?, CENSUS_YEAR = ?
-      where ADDRESS_ID = ?
-      ```
+        ```sql
+        update Dim_Address
+        set STREET= ?, ZIP = ?, LATITUDE = ?, LONGITUDE = ?, CITY_NAME = ?, STATE = ?, CITY_POPULATION = ?, CENSUS_YEAR = ?
+        where ADDRESS_ID = ?
+        ```
     - in 'Column Mappings' tab, map 'Input Column' and 'Destination Column' -> Ok
   - But the problem with 'OLE DB Command' is that it does not verify whether there have any changes in the matched data or not, it just takes all the data and updating or over writing the same. So, to identify any change in source data we need to use another 'Lookup' before 'OLE DB Command' and identify the actual data where updation is required.
     - in 'Dim_Address' table only the 'CITY_POPULATION' and 'CENSUS_YEAR' columns could be updated over time but the other columns like 'STREET', 'ZIP', 'LATITUDE', 'LONGITUDE', 'CITY_NAME', 'STATE' cannot updatd
@@ -459,27 +459,45 @@
     - Now, due to 'OLE DB Command' in 'Data Flow' the task becomes very slow because it performs row by row operation, to overcome this we will update the data in 'Control Flow' using 'Execute SQL Task' because it performs batch operation.
     - open 'DWH_Load_Dim_Address.dtsx'
     - delete the 'OLE DB Command' and drag 'OLE DB Destination 1'
-    - connect the 'blue pipe' from 'Lookup 2' to 'OLE DB Destination 1'
-    - choose 'Lookup No Match Output' as 'Output' -> Ok
-    - double click on ' OLE DB Destination 1'
-    - in 'connection Manager' select 'banl_dw' in 'OLE DB Connection manager'
-    - select 'Data access mode' as 'Table or view - fast load'
-    - select 'New' in 'Name of the table or the view'
-    - change table name to 'temp_account' and change data type if needed -> Ok
-    - now click on 'Mappings' to check source and destination column and data type are corrected or not -> Ok
+      - connect the 'blue pipe' from 'Lookup 2' to 'OLE DB Destination 1'
+      - choose 'Lookup No Match Output' as 'Output' -> Ok
+      - double click on ' OLE DB Destination 1'
+      - in 'connection Manager' select 'CC_Transactions_DW' in 'OLE DB Connection manager'
+      - select 'Data access mode' as 'Table or view - fast load'
+      - select 'New' in 'Name of the table or the view'
+      - change table name to 'Temp_Address' and change data type if needed -> Ok
+      - now click on 'Mappings' to check source and destination column and data type are corrected or not -> Ok
+        <br> ![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/a2c5d667-e500-4dcb-a1bf-55f91ff80b1e)
     - now, in 'Control Flow' drag 'Execute SQL Task'
-    - double click on it
-    - in 'General' select 'OLE DB' in 'ConnectionType' and 'bank_dw' in 'Connection'
-    - add `update d
-set	d.cust_name	= t.cust_name,
-	d.cust_add = t.cust_add,
-	d.cust_state = t.cust_state,
-	d.cust_zipcode = t.cust_zipcode,
-	d.br_id = t.br_id,
-	d.prod_id = t.prod_id,
-	d.prod_name = t.prod_name,
-	d.status = t.status
-from dim_account d join temp_account t on d.acc_id = t.acc_id
-go
-truncate table temp_account
-go` in 'SQLStatement' -> Ok -> Ok
+      - double click on it
+      - in 'General' select 'OLE DB' in 'ConnectionType' and 'CC_Transactions_DW' in 'Connection'
+      - add
+        ```sql
+        update Dim_Address
+        set CITY_POPULATION = t.city_pop_lkp, CENSUS_YEAR = t.CENSUS_YEAR_der
+        from Dim_Address d join Temp_Address t on d.ADDRESS_ID = t.add_id
+        go
+
+        truncate table Temp_Address
+        go
+        ```
+        in 'SQLStatement' -> Ok -> Ok
+        <br> ![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/412d0dfd-d27a-46ba-81f2-8631518c4621)
+  <br> &emsp;
+  - Incremental loading using '**Slowly Changing Dimension**'
+    - double click on 'DWH_Load_Dim_Address'
+    - drag 'Slowly Changing Dimension' after 'Derived Column'
+      - connect 'blue pipe' from 'Derived Column' to 'Slowly Changing Dimension'
+      - double click on it
+      - Next -> select '[dbo].[Dim_Address]' in 'Table or view'
+      - select proper 'Input Columns' and 'Dimension Columns' and then choose the 'Business key' column -> Next
+        <br> **Remember**
+      	<br> Fixed Attribute (Type 0) -> data that will not update or change anymore like, Name, Gender, DOB etc.
+      	<br> Changing Attribute (Type 1) -> data that will update or change and we can overwrite the same in database like, the City you staying etc.
+      	<br> Historical Attribute (Type 2) -> data that will update or change and we need to maintain the historic data in database like, Salary increasing every year etc. 
+      - now select dimension column in 'Dimension Columns' and select 'Changing Attribute' in 'Change Type' -> Next -> Next -> Next -> Finish
+      - and it will create everything for you
+        ![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/8c83032a-9a56-4a53-9599-73ba63b757d9)
+        <br> **Remember**
+        <br> if Historical Attribute (Type 2) is there then we cannot have Primary Key in database because Type 2 save duplicate data in Primary Key column
+      - just remember performance wise 'Slowly Changing Dimension' is not so good because it uses 'OLE DB Command' for data loading and as we know 'OLE DB Command' perform row by row wise.
