@@ -503,12 +503,122 @@
       - just remember performance wise 'Slowly Changing Dimension' is not so good because it uses 'OLE DB Command' for data loading and as we know 'OLE DB Command' perform row by row wise.
     <br> &emsp;
   - Incremental loading using '**Stored Procedure**'
-  - 
-  
-  <br> &emsp;
+    - load data from 'Credit_Card_Transactions' server to 'CC_Transactions_Stage' server
+      - for example we are going to load 'address_stage' table in 'CC_Transactions_Stage' server from 'address' table in 'Credit_Card_Transactions' server
+      - now open SQL Server Management Studio
+      - creating a stored procedure in 'CC_Transactions_Stage' server that will load data from 'address' table to 'address_stage' table
+        ```sql
+        create proc usp_load_address_stage
+        as
+        begin
+        	-- delete all data from stage table
+        	delete from CC_Transactions_Stage.dbo.address_stage
 
+        	-- insert data to stage table from oltp server
+        	insert into CC_Transactions_Stage.dbo.address_stage
+        	select * from Credit_Card_Transactions.dbo.address
+        end
+        ```
+      - calling the stored procedure `exec usp_load_address_stage`
+    - now load 'Dim_Address' in 'CC_Transactions_DW' from 'address_stage' in 'CC_Transactions_Stage' and few columns will add and delete in final dimension table
+    - *also note that in data warehouse we will use incremental loading not full loading*
+      - creating a stored procedure in 'CC_Transactions_DW' server that will load data incrementally from 'address_stage' to 'Dim_Address'
+        ```sql
+        create proc usp_incr_load_dim_address
+        as
+        begin
+        	--Incremental Insert
+        		-- select columns that we need for dimension table
+        		insert into Dim_Address
+        		select a.add_id, a.street, a.zip, a.lat, a.long, c.city, c.state, c.city_pop, 2020 as census_year
+        		-- joining two stage table to get 'city_name', 'state', 'city_pop' column
+        		from CC_Transactions_Stage.dbo.address_stage a
+        		join CC_Transactions_Stage.dbo.city_stage c on a.city_id = c.city_id
+        		-- left joining with 'Dim_Address' column to know about new data
+        		left join CC_Transactions_DW.dbo.Dim_Address da on a.add_id = da.ADDRESS_ID
+        		where da.ADDRESS_ID is null
+
+        	-- Incremental Update
+        		update da
+        		set da.STREET = a.street, da.ZIP = a.zip, da.LATITUDE = a.lat, da.LONGITUDE = a.long,
+        		da.CITY_NAME = c.city, da.STATE = c.state, da.CITY_POPULATION = c.city_pop
+        		from CC_Transactions_Stage.dbo.address_stage a
+        		-- joining two stage table to get 'city_name', 'state', 'city_pop' column
+        		join CC_Transactions_Stage.dbo.city_stage c on a.city_id = c.city_id
+        		-- joining with 'Dim_Address' column to know about the updated data
+        		join CC_Transactions_DW.dbo.Dim_Address da on a.add_id = da.ADDRESS_ID
+        		where a.street != da.STREET or a.zip != da.ZIP or a.lat != da.LATITUDE or a.long != da.LONGITUDE
+        		or c.city != da.CITY_NAME or c.state != da.STATE or c.city_pop != da.CITY_POPULATION
+        end
+        ```
+      - calling the stored procedure `exec usp_incr_load_dim_address`
+    - major drawback in 'Stored Procedure' is to maintain the code and writing the complex code for more columns.
+  <br> &emsp;
   - Incremental loading using '**Merge Statement**'
-  - 
+    - A 'Merge Statement' is a SQL statement that performs INSERT, UPDATE, and DELETE operations based on the existence of rows matching the selection criteria in the target table.
+      - now loading 'Dim_Address' table in 'CC_Transactions_DW' from 'address_stage' table in 'CC_Transactions_Stage' and few columns will add and delete in final dimension table
+      - creating a 'merge statement' that will load data incrementally from 'address_stage' to 'Dim_Address'
+        ```sql
+        create proc usp_merge_Dim_Address
+        as
+        begin
+        	-- inserting source table into temp table
+        	select a.add_id, a.street, a.zip, a.lat, a.long, c.city, c.state, c.city_pop, 2020 as census_year
+        	into #temp
+        	from CC_Transactions_Stage.dbo.address_stage a join CC_Transactions_Stage.dbo.city_stage c
+        	on a.city_id = c.city_id
+
+        	merge Dim_Address as d -- destination table
+        	using #temp as s -- source table
+        	on d.ADDRESS_ID = s.add_id
+
+        	when not matched by target -- Insert
+        	then
+        	insert (ADDRESS_ID, STREET, ZIP, LATITUDE, LONGITUDE, CITY_NAME, STATE, CITY_POPULATION, CENSUS_YEAR)
+        	values(s.add_id, s.street, s.zip, s.lat, s.long, s.city, s.state, s.city_pop, s.census_year)
+
+        	when matched and s.street <> d.STREET or s.zip <> d.ZIP or s.lat <> d.LATITUDE or s.long <> d.LONGITUDE
+        	or s.city <> d.CITY_NAME or s.state <> d.STATE or s.city_pop <> d.CITY_POPULATION or s.census_year <> d.CENSUS_YEAR  -- Update
+        	then
+        	update
+        	set d.street = s.street, d.ZIP = s.zip, d.LATITUDE = s.lat, d.LONGITUDE = s.long,
+        	d.CITY_NAME = s.city, d.STATE = s.state , d.CITY_POPULATION = s.city_pop, d.CENSUS_YEAR = s.census_year;
+        end
+
+        
+          create proc usp_merge_dim_account
+          as
+          begin
+
+  	--inserting source table into temp table
+  	select	a.acc_id, a.cust_name, a.cust_add, a.cust_state, a.cust_zipcode, a.br_id, a.prod_id,
+  			p.prod_name, a.status, 91 as 'country_code' into #temp_source
+  	from bank_stage.dbo.account_stage a join bank_stage.dbo.product_stage p
+  	on a.prod_id = p.prod_id
+
+  	merge dim_account as d -- destination table
+  	using #temp_source as s -- source table
+  	on s.acc_id= d.acc_id
+
+  	-- insert
+  	when not matched by target
+  	then
+  	insert(acc_id, cust_name, cust_add, cust_state, cust_zipcode, br_id, prod_id, prod_name, status, country_code)
+  	values(s.acc_id, s.cust_name, s.cust_add, s.cust_state, s.cust_zipcode, s.br_id, s.prod_id, s.prod_name, s.status, s.country_code)
+
+  	--update
+  	when	matched and s.cust_name <> d.cust_name or s.cust_add <> d.cust_add or
+  			s.cust_state <> d.cust_state or s.cust_zipcode <> d.cust_zipcode or
+  			s.br_id <> d.br_id or s.prod_id <> d.prod_id or s.prod_name <> d.prod_name or
+  			s.status <> d.status or s.country_code <> d.country_code
+  	then
+  	update
+  	set	d.cust_name = s.cust_name, d.cust_add = s.cust_add, d.cust_state = s.cust_state,
+  		d.cust_zipcode = s.cust_zipcode, d.br_id = s.br_id, d.prod_id = s.prod_id,
+  		d.prod_name = s.prod_name, d.status = s.status, d.country_code = s.country_code;
+  end
+  ```
+
   <br> &emsp;
   - Why '**Full Loading/Partial Loading**' to the Fact Table
     - OLTP will grow in size over time. Generally OLTP is smaller in size. So, we need to load complete fact data from OLTP to OLAP and then delete all data in OLTP fact table.
