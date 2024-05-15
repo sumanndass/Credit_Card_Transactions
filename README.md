@@ -501,3 +501,22 @@
         <br> **Remember**
         <br> if Historical Attribute (Type 2) is there then we cannot have Primary Key in database because Type 2 save duplicate data in Primary Key column
       - just remember performance wise 'Slowly Changing Dimension' is not so good because it uses 'OLE DB Command' for data loading and as we know 'OLE DB Command' perform row by row wise.
+    <br> &emsp;
+  - Incremental loading using '**Stored Procedure**'
+  - 
+  
+  <br> &emsp;
+
+  - Incremental loading using '**Merge Statement**'
+  - 
+  <br> &emsp;
+  - Why '**Full Loading/Partial Loading**' to the Fact Table
+    - OLTP will grow in size over time. Generally OLTP is smaller in size. So, we need to load complete fact data from OLTP to OLAP and then delete all data in OLTP fact table.
+    - Generally we need to historical fact data to analyze. So, we will perform only Insert operation in fact table of OLAP database.
+    - In fact tables there have no primary key. So, we cannot perform incremental loading.
+    - In partial loadind for example, we need to maintain 3 month sales data in OLTP data base so, we will transfer 1 month data to OLAP after every montn end.
+    - So, we can use below mention SSIS package for full loading.
+      <br> ![image](https://github.com/sumanndass/Credit_Card_Transactions_MSBI/assets/156992689/d75743ed-54e1-4026-abfe-9123fbe7a076)
+
+
+### SSIS Deployment
