@@ -637,4 +637,83 @@
 
 
 ### SSAS Create Cube
+- **Create SSAS Project**
+  - Create SSAS project using 'Analysis Services Multidimensional Project' in DevEnv
+    **Remember**
+    <br> Multidimensional - for more data, save in disk, slow performace, use MDX
+    <br> Tabular - for few GB of data, save in RAM, fast performace, use DAX
+
+- **Create Data Source**
+  - right click on 'Data Sources'
+  - select 'New Data Source'
+  - Next
+  - choose 'Create a data source based on an existing or new connection'
+  - click on 'new'
+  - change provider from 'Native OLE DB' to 'Microsoft OLE DB Driver for SQL Server'
+  - enter 'Server or file name' or '.'
+  - select or enter a database name in 'Initial catalog' like here 'CC_Transactions_DW' server
+  - check 'Test Connection' - ok - ok
+  - next
+  - select the 'Use the service account'
+  - next
+  - enter data source name 'ds_CC_Transactions_DW'
+  - finish
+  
+- **Create Data Source View**
+  - right click on 'Data Source Views'
+  - select ‘New Data Source View’
+  - next
+  - select data source from 'Relational Data Sources'
+  - next
+  - select fact tables first
+  - click on ‘Add Related Tables’ to select all other tables related to fact tables or manually choose required tables
+  - next
+  - enter name 'dsv_CC_Transactions_DW'
+  - finish
+  - double click on 'dsv_CC_Transactions_DW'
+  - match the relationships if needed
+  - basically, you need to create multiple 'data source view' as per your requirements and on the basis of 'data source view' you will create cubes
+
+- **Create Cube**
+  - right click on 'Cubes'
+  - select 'New Cube'
+  - next
+  - choose 'Use existing tables’
+  - next
+  - now select only fact/measure tables
+  - next
+  - now select only fact/measures as per your requirement or select all measures
+  - next
+  - now select dimensions as per your requirement or select all dimensions
+  - next
+  - now enter 'Cube name:' as 'cube_CC_Transactions_DW'
+  - finish
+
+- **Build Dimension**
+  - Dimensions will automatically create when cube is formed
+  
+- **Create Calc**
+
+- **Deploy the Cube**
+  - right click on project in solution explorer
+  - go to 'Properties'
+  - select 'Deployment'
+  - enter 'Server' name or '.'
+  - enter 'Database' name or 'cube_bank_dw'
+  - Apply - Ok
+  - now again right click on project in solution explorer
+  - select 'Build'
+  - now again right click on project in solution explorer
+  - select 'Process' - yes
+  - process options ‘process full’
+  - run - close - close
+  - double click on the cube 
+  - browser
+  - reconnect
+- click on 'Browser' (to see all the aggregations)
+- to view new items -> double click on dimensions in solution explorer -> drag items from 'data source view' to 'attributes' -> if hierarchy is needed then drag items from 'attributes' to 'hierarchies' -> enter name of the hierarchy -> save -> ok -> if we need, we can create more hierarchies
+- now again rebuild and process the cube if any changes are done
+- now go to browser and refresh or reconnect the cube
+- now you can use this cube. Like: below example
+  - open excel -> data -> from database -> from analysis services -> enter server name or . -> log on credential 'use windows authentication' -> next -> select cube -> next -> finish -> ok -> now do anything as your wish
 
