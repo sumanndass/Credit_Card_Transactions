@@ -556,8 +556,8 @@
   <br> &emsp;
   - Incremental loading using '**Merge Statement**'
     - A 'Merge Statement' is a SQL statement that performs INSERT, UPDATE, and DELETE operations based on the existence of rows matching the selection criteria in the target table.
-      - now loading 'Dim_Address' table in 'CC_Transactions_DW' from 'address_stage' table in 'CC_Transactions_Stage' and few columns will add and delete in final dimension table
-      - creating a 'merge statement' that will load data incrementally from 'address_stage' to 'Dim_Address'
+      - now load 'Dim_Address' table in 'CC_Transactions_DW' from 'address_stage' table in 'CC_Transactions_Stage' and few columns will add and delete in final dimension table
+      - creating a 'merge statement' 'CC_Transactions_DW' server in that will load data incrementally from 'address_stage' to 'Dim_Address'
         ```sql
         create proc usp_merge_Dim_Address
         as
@@ -584,41 +584,8 @@
         	set d.street = s.street, d.ZIP = s.zip, d.LATITUDE = s.lat, d.LONGITUDE = s.long,
         	d.CITY_NAME = s.city, d.STATE = s.state , d.CITY_POPULATION = s.city_pop, d.CENSUS_YEAR = s.census_year;
         end
-
-        
-          create proc usp_merge_dim_account
-          as
-          begin
-
-  	--inserting source table into temp table
-  	select	a.acc_id, a.cust_name, a.cust_add, a.cust_state, a.cust_zipcode, a.br_id, a.prod_id,
-  			p.prod_name, a.status, 91 as 'country_code' into #temp_source
-  	from bank_stage.dbo.account_stage a join bank_stage.dbo.product_stage p
-  	on a.prod_id = p.prod_id
-
-  	merge dim_account as d -- destination table
-  	using #temp_source as s -- source table
-  	on s.acc_id= d.acc_id
-
-  	-- insert
-  	when not matched by target
-  	then
-  	insert(acc_id, cust_name, cust_add, cust_state, cust_zipcode, br_id, prod_id, prod_name, status, country_code)
-  	values(s.acc_id, s.cust_name, s.cust_add, s.cust_state, s.cust_zipcode, s.br_id, s.prod_id, s.prod_name, s.status, s.country_code)
-
-  	--update
-  	when	matched and s.cust_name <> d.cust_name or s.cust_add <> d.cust_add or
-  			s.cust_state <> d.cust_state or s.cust_zipcode <> d.cust_zipcode or
-  			s.br_id <> d.br_id or s.prod_id <> d.prod_id or s.prod_name <> d.prod_name or
-  			s.status <> d.status or s.country_code <> d.country_code
-  	then
-  	update
-  	set	d.cust_name = s.cust_name, d.cust_add = s.cust_add, d.cust_state = s.cust_state,
-  		d.cust_zipcode = s.cust_zipcode, d.br_id = s.br_id, d.prod_id = s.prod_id,
-  		d.prod_name = s.prod_name, d.status = s.status, d.country_code = s.country_code;
-  end
-  ```
-
+        ```
+      - remember we will not delete anything here because we will use incremental loading.
   <br> &emsp;
   - Why '**Full Loading/Partial Loading**' to the Fact Table
     - OLTP will grow in size over time. Generally OLTP is smaller in size. So, we need to load complete fact data from OLTP to OLAP and then delete all data in OLTP fact table.
@@ -630,3 +597,44 @@
 
 
 ### SSIS Deployment
+- DEV tasks
+  - Create a SSIS Package / Perform Unit Testing
+  - Implement Logging in SSIS
+    - Extensions -> SSIS -> Logging -> tick the 'Containers' from left box -> click add 'SSIS log provider for SQL Server' and 'SSIS log provider for Windows Event Log' in 'Providers and Logs' tab -> tick previous two log below -> select a server for 'SSIS log provider for SQL Server' in 'Configuration' -> in 'Details' tab selects 'OnError' & 'OnPostExecute' & 'OnTaskFailed' -> OK
+    - Event Handler (Customized Logging)
+  - Build and CheckIn the Code to VSTF / TFS
+    - right click on project name and click on 'Build' to find any issue with the project -> now go to project path 'D:\...\...\...\SSIS\CC_Transaction_DW_SSIS\CC_Transaction_DW_SSIS\bin\Development' there must be an .ispac file, this file having all the packages -> and upload this .ispac file to VSTF/TFS server -> now you have to give deployment guide as .txt or .docx file like
+      <br> Project Name:
+      <br> Author:
+      <br> Purpose:
+      <br> Steps:
+      1. go to VSTF server and download <name> folder and its content
+      2. go to DWH and open SQL Server Management Studio
+      3. connect to server
+      4. right click on integration service catalogs and choose create a catalog
+      5. right click on SSISDB and choose folder
+      6. name = 'Credit_Card_Transactions' and ok
+      7. double click on .ispac file
+      8. Next
+      9. Next
+      10. choose 'SSIS in SQL Server' and Next
+      11. select Server
+      12. click on 'Connect'
+      13. Browse for the folder
+      14. Next
+      15. Deploy
+      16. Close
+- DBA tasks
+  - Download all files from VSTF/TFS server to DWH server
+  - Create Integration Services Catalogs in SQL Server of DWH
+    - open SSMS -> right click on 'Integration Service Catalogs' -> click on 'Create Catalog' -> click on 'Enable CLR Integration' -> enter password '12345' or anything you want -> OK -> now click on SSISDB and click on 'Create Folder' -> put name -> OK
+  - Deploy the package using ispac file
+    - double click on .ispac file -> next -> next -> choose 'SSIS in SQL Server' and 'Next' -> put 'Server Name' as '.' -> click on 'Connect' -> now 'Browse' for the folder which was created in SSMS Integration Service Catalogs -> select the folder and change the name as you wish in 'Path' -> Next -> click on 'Deploy' -> Close
+    - now go to SSMS and refresh 'Integration Service Catalogs' -> and all the packages will be there in the folder which was created earlier -> now create a document what the packages are doing
+    - in real life all the servers will be different so in that case we need to configure the connections -> go to SSMS and open the folder in 'Integration Service Catalogs' -> right click on packages and click on 'Configure' -> go to 'Connection Manager' tab -> change server name -> click on 3 dots -> click on 'Edit values' and enter server address -> ok -> ok -> right click on packages and click on 'Execute' -> ok, this will execute the task -> click 'Yes' to report the task -> report will generate and also you can find the SQL Server logging in System Table in Server (logged database -> Tables -> System Tables)
+  - Schedule a Package Using SQL Server Jobs
+    - to schedule task -> go to 'SQL Server Agent' and start it by right click on it -> expand it and right click on 'Jobs' -> click on 'New Job' -> put job name like 'Dim_Address_Load_Job' in 'General' tab -> click on 'Steps' tab -> click on 'New' -> put 'Step Name' like 'attach_package' -> select type 'SQL Server Integration Services Packages' -> now in below 'Package' tab choose 'SSIS Catalog' in 'Package source' -> put 'Server' -> now click on 3 dots in 'Package' and choose one package -> ok -> now go to 'Schedule' tab -> click on 'New' -> put 'Name' -> choose 'Occurs' as daily, weekly, monthly -> click on 'Occurs once at' and put time -> ok -> ok -> now task will automatically run at 01:00AM daily or you can run the same at any time -> right click on the task and click on 'Start job at step' -> and you can watch the logging, by double clicking on 'Job Activity Monitor'
+
+
+### SSAS Create Cube
+
