@@ -691,6 +691,11 @@
 
 - **Build Dimension**
   - Dimensions will automatically create when cube is formed
+    - but to view new items -> double click on dimensions in solution explorer -> drag items from 'Data Source View' to 'Attributes'
+    - if hierarchy is needed then drag items from 'Attributes' to 'Hierarchies' -> enter name of the hierarchy -> in 'Attribute Relationship' tab arrange attributes from smallest to highest -> save -> ok -> if we need, we can create more hierarchies
+      - if any issue creates then double click on the selected dimension -> right click on the selected 'Attributes' -> go to 'Properties', in 'KeyColumns' select its prior attributes -> arrange the same from smallest to highest -> Ok -> in 'NameColumn' choose the selected attributes -> ok
+    - now again rebuild and process the cube if any changes are done
+    - now go to browser and refresh or reconnect the cube
   
 - **Create Calc**
 
@@ -711,9 +716,8 @@
   - browser
   - reconnect
 - click on 'Browser' (to see all the aggregations)
-- to view new items -> double click on dimensions in solution explorer -> drag items from 'data source view' to 'attributes' -> if hierarchy is needed then drag items from 'attributes' to 'hierarchies' -> enter name of the hierarchy -> save -> ok -> if we need, we can create more hierarchies
-- now again rebuild and process the cube if any changes are done
-- now go to browser and refresh or reconnect the cube
-- now you can use this cube. Like: below example
-  - open excel -> data -> from database -> from analysis services -> enter server name or . -> log on credential 'use windows authentication' -> next -> select cube -> next -> finish -> ok -> now do anything as your wish
+
+- **Testing the Cube - Excel**
+  - now you can use this cube. Like: below example
+    - open excel -> data -> from database -> from analysis services -> enter server name or . -> log on credential 'use windows authentication' -> next -> select cube -> next -> finish -> ok -> now do anything as your wish
 
